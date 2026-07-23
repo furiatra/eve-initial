@@ -39,15 +39,15 @@ function parseCSV(text) {
   if (lines.length < 2) throw new Error('CSV appears empty')
 
   // Detect delimiter
-  const delim = ','
+  const delim = lines[0].includes('\t') ? '\t' : ','
 
-  const headers = lines[0].split(delim).map(h => h.trim().replace(/^"|"$/g, ''))
+  const headers = lines[0].split(delim).map(h => h.trim().replace(/^"|"$/g, '').toLowerCase())
 
   const rows = []
   for (let i = 1; i < lines.length; i++) {
     const vals = lines[i].split(delim).map(v => v.trim().replace(/^"|"$/g, ''))
     const row = {}
-    headers.forEach((h, idx) => { row[h.toLowerCase()] = vals[idx] || '' })
+    headers.forEach((h, idx) => { row[h] = vals[idx] || '' })
     rows.push(row)
   }
   return { headers, rows }
@@ -55,8 +55,8 @@ function parseCSV(text) {
 
 function findCol(headers, candidates) {
   for (const c of candidates) {
-    const found = headers.find(h => h.toLowerCase().includes(c.toLowerCase()))
-    if (found) return found.toLowerCase()
+    const found = headers.find(h => h.includes(c.toLowerCase()))
+    if (found) return found
   }
   return null
 }
@@ -94,11 +94,11 @@ export default function CSVImporter({ onDone }) {
 
       // Build preview rows
       const prev = rows.slice(0, 5).map(r => ({
-      zoho:    r[mapping.zoho?.toLowerCase()]    || '—',
-      unit:    r[mapping.unit?.toLowerCase()]    || '—',
-      company: r[mapping.company?.toLowerCase()] || '—',
-      type:    normaliseType(r[mapping.type?.toLowerCase()]),
-      rawType: r[mapping.type?.toLowerCase()]    || '—',
+        zoho:    r[mapping.zoho]    || '—',
+        unit:    r[mapping.unit]    || '—',
+        company: r[mapping.company] || '—',
+        type:    normaliseType(r[mapping.type]),
+        rawType: r[mapping.type]    || '—',
       }))
 
       setParsed({ headers, rows, mapping })
@@ -126,10 +126,10 @@ export default function CSVImporter({ onDone }) {
       const row = rows[i]
       setProgress({ current: i + 1, total: rows.length })
 
-      const unitName    = row[mapping.unit?.toLowerCase()]?.trim()
-      const companyName = row[mapping.company?.toLowerCase()]?.trim()
-      const zoho        = row[mapping.zoho?.toLowerCase()]?.trim()
-      const type        = normaliseType(row[mapping.type?.toLowerCase()])
+      const unitName    = row[mapping.unit]?.trim()
+      const companyName = row[mapping.company]?.trim()
+      const zoho        = row[mapping.zoho]?.trim()
+      const type        = normaliseType(row[mapping.type])
 
       // Skip rows without a unit name or company
       if (!unitName || !companyName) {
@@ -431,4 +431,3 @@ export default function CSVImporter({ onDone }) {
     </div>
   )
 }
-
