@@ -35,7 +35,7 @@ function normaliseType(raw) {
 
 function parseCSV(text) {
   // Normalise line endings, remove blank lines
-  const lines = text.replace(/^\uFEFF/, '').replace(/\r/g, '').split('\n').filter(l => l.trim())
+  const lines = text.replace(/\r/g, '').split('\n').filter(l => l.trim())
   if (lines.length < 2) throw new Error('CSV appears empty')
 
   // Always use comma — file must be saved as CSV not TSV

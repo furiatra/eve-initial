@@ -125,7 +125,7 @@ export function useOperator(id) {
     if (!id) return null
     const [operatorRes, unitsRes, eventsRes] = await Promise.all([
       supabase.from('operators').select('*').eq('id', id).single(),
-      supabase.from('units').select('*').eq('operator_id', id).eq('is_active', true),
+      supabase.from('units').select('id, name, type, zoho_code, sub_type, description, notes').eq('operator_id', id).eq('is_active', true).order('name'),
       supabase.from('event_operators')
         .select('*, events(*)')
         .eq('operator_id', id),
