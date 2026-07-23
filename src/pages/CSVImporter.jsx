@@ -56,7 +56,7 @@ function parseCSV(text) {
 function findCol(headers, candidates) {
   for (const c of candidates) {
     const found = headers.find(h => h.toLowerCase().includes(c.toLowerCase()))
-    if (found) return found
+    if (found) return found.toLowerCase()
   }
   return null
 }
@@ -84,7 +84,7 @@ export default function CSVImporter({ onDone }) {
       const mapping = {
         zoho:      findCol(headers, ['zoho']),
         unit:      findCol(headers, ['unit', 'name']),
-        company:   findCol(headers, ['company', 'Company']),
+        company:   findCol(headers, ['company']),
         companyId: findCol(headers, ['companyid', 'company_id']),
         type:      findCol(headers, ['type']),
         subtype:   findCol(headers, ['sub-type', 'subtype', 'sub_type']),
