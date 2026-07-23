@@ -72,14 +72,14 @@ export default function EventForm({ event = null, onClose, onSaved }) {
   // Search brands as user types
   useEffect(() => {
     const q = fields.brand_name.trim()
-    if (!q || q.length < 2 || editing) { setBrands([]); return }
+    if (!q || q.length < 2 || editing) { setBrandSugg([]); return }
     const timer = setTimeout(async () => {
       const { data } = await supabase
         .from('event_brands')
         .select('id, name')
         .ilike('name', `%${q}%`)
         .limit(6)
-      setBrands(data ?? [])
+      setBrandSugg(data ?? [])
       setShowSugg(true)
     }, 250)
     return () => clearTimeout(timer)
@@ -92,7 +92,7 @@ export default function EventForm({ event = null, onClose, onSaved }) {
 
   function selectBrand(brand) {
     setFields(f => ({ ...f, brand_id: brand.id, brand_name: brand.name }))
-    setBrands([])
+    setBrandSugg([])
     setShowSugg(false)
   }
 
