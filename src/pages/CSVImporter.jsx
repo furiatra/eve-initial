@@ -94,11 +94,11 @@ export default function CSVImporter({ onDone }) {
 
       // Build preview rows
       const prev = rows.slice(0, 5).map(r => ({
-        zoho:    r[mapping.zoho]    || '—',
-        unit:    r[mapping.unit]    || '—',
-        company: r[mapping.company] || '—',
-        type:    normaliseType(r[mapping.type]),
-        rawType: r[mapping.type]    || '—',
+      zoho:    r[mapping.zoho?.toLowerCase()]    || '—',
+      unit:    r[mapping.unit?.toLowerCase()]    || '—',
+      company: r[mapping.company?.toLowerCase()] || '—',
+      type:    normaliseType(r[mapping.type?.toLowerCase()]),
+      rawType: r[mapping.type?.toLowerCase()]    || '—',
       }))
 
       setParsed({ headers, rows, mapping })
@@ -126,10 +126,10 @@ export default function CSVImporter({ onDone }) {
       const row = rows[i]
       setProgress({ current: i + 1, total: rows.length })
 
-      const unitName    = row[mapping.unit]?.trim()
-      const companyName = row[mapping.company]?.trim()
-      const zoho        = row[mapping.zoho]?.trim()
-      const type        = normaliseType(row[mapping.type])
+      const unitName    = row[mapping.unit?.toLowerCase()]?.trim()
+      const companyName = row[mapping.company?.toLowerCase()]?.trim()
+      const zoho        = row[mapping.zoho?.toLowerCase()]?.trim()
+      const type        = normaliseType(row[mapping.type?.toLowerCase()])
 
       // Skip rows without a unit name or company
       if (!unitName || !companyName) {
