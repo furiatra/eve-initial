@@ -47,7 +47,7 @@ function parseCSV(text) {
   for (let i = 1; i < lines.length; i++) {
     const vals = lines[i].split(delim).map(v => v.trim().replace(/^"|"$/g, ''))
     const row = {}
-    headers.forEach((h, idx) => { row[h] = vals[idx] || '' })
+    headers.forEach((h, idx) => { row[h.toLowerCase()] = vals[idx] || '' })
     rows.push(row)
   }
   return { headers, rows }
