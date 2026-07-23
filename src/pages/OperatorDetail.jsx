@@ -23,22 +23,19 @@ const TYPE_COLORS = {
 }
 
 export default function OperatorDetail({ id, onBack, onNavigate }) {
-  const { data: operator, loading, error } = useOperator(id)
-  const [typeFilter, setTypeFilter] = useState(null)
-  const [showEdit, setShowEdit]       = useState(false)
-  const [showUnitForm, setShowUnitForm] = useState(false)
-  const [search, setSearch] = useState('')
+  const { data: operator, loading, error, refetch } = useOperator(id)
+  const [typeFilter,    setTypeFilter]    = useState(null)
+  const [search,        setSearch]        = useState('')
+  const [showEdit,      setShowEdit]      = useState(false)
+  const [showUnitForm,  setShowUnitForm]  = useState(false)
 
   if (loading) return <LoadingSpinner />
   if (error)   return <ErrorState message={error} />
   if (!operator) return null
 
   const totalCharged = operator.eventAssignments?.reduce((s, a) => s + (a.agreed_fee_pence ?? 0), 0) ?? 0
+  const unitTypes    = [...new Set(operator.units?.map(u => u.type).filter(Boolean))]
 
-  // Get unique types for filter pills
-  const unitTypes = [...new Set(operator.units?.map(u => u.type).filter(Boolean))]
-
-  // Filter units
   const filteredUnits = operator.units?.filter(u => {
     const matchesType   = !typeFilter || u.type === typeFilter
     const matchesSearch = !search || u.name?.toLowerCase().includes(search.toLowerCase()) || u.zoho_code?.includes(search)
@@ -48,14 +45,25 @@ export default function OperatorDetail({ id, onBack, onNavigate }) {
   return (
     <div>
       <BackBtn onClick={onBack} />
+
+      {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-1">
         <div className="flex items-center gap-3 flex-wrap">
-        <h1 className="text-3xl font-black text-zinc-100" style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.05em' }}>{operator.name}</h1>
-        <Chip label={operator.category} color="text-purple-300 bg-purple-500/10" />
+          <h1 className="text-3xl font-black text-zinc-100" style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.05em' }}>
+            {operator.name}
+          </h1>
+          <Chip label={operator.category} color="text-purple-300 bg-purple-500/10" />
         </div>
-        <button onClick={() => setShowEdit(true)} className="shrink-0 text-xs text-zinc-500 hover:text-amber-400 border border-zinc-700 hover:border-amber-500/50 rounded-lg px-3 py-1.5 transition-colors">Edit</button>
+        <button
+          onClick={() => setShowEdit(true)}
+          className="shrink-0 text-xs text-zinc-500 hover:text-amber-400 border border-zinc-700 hover:border-amber-500/50 rounded-lg px-3 py-1.5 transition-colors"
+        >
+          Edit
+        </button>
       </div>
-      <p className="text-zinc-500 text-sm mb-6">✉️ {operator.contact_email || '—'} &nbsp;·&nbsp; 📞 {operator.contact_phone || '—'}</p>
+      <p className="text-zinc-500 text-sm mb-6">
+        ✉️ {operator.contact_email || '—'} &nbsp;·&nbsp; 📞 {operator.contact_phone || '—'}
+      </p>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3 mb-6">
@@ -75,8 +83,15 @@ export default function OperatorDetail({ id, onBack, onNavigate }) {
       <Card className="mb-4">
         <div className="flex items-center justify-between mb-3">
           <div className="text-xs text-zinc-500 uppercase tracking-widest">Units</div>
-          <button onClick={() => setShowUnitForm(true)} className="text-xs text-amber-400 hover:text-amber-300 font-semibold transition-colors">+ Add Unit</button>
-          <span className="text-xs text-zinc-600">{filteredUnits.length} of {operator.units?.length ?? 0}</span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-zinc-600">{filteredUnits.length} of {operator.units?.length ?? 0}</span>
+            <button
+              onClick={() => setShowUnitForm(true)}
+              className="text-xs text-amber-400 hover:text-amber-300 font-semibold transition-colors"
+            >
+              + Add Unit
+            </button>
+          </div>
         </div>
 
         {/* Search */}
@@ -155,7 +170,11 @@ export default function OperatorDetail({ id, onBack, onNavigate }) {
         {operator.eventAssignments?.length === 0 ? (
           <p className="text-zinc-600 text-sm">No events yet</p>
         ) : operator.eventAssignments?.map(a => (
-          <div key={a.event_id} className="flex items-center justify-between py-2 border-b border-zinc-800 last:border-0 cursor-pointer hover:text-amber-400 transition-colors" onClick={() => onNavigate('event', a.event_id, { name: a.events?.name })}>
+          <div
+            key={a.event_id}
+            className="flex items-center justify-between py-2 border-b border-zinc-800 last:border-0 cursor-pointer hover:text-amber-400 transition-colors"
+            onClick={() => onNavigate('event', a.event_id, { name: a.events?.name })}
+          >
             <div>
               <div className="text-sm font-medium text-zinc-200">{a.events?.name}</div>
             </div>
@@ -166,7 +185,8 @@ export default function OperatorDetail({ id, onBack, onNavigate }) {
           </div>
         ))}
       </Card>
-    </div>
+
+      {/* Modals */}
       {showEdit && (
         <OperatorForm
           operator={operator}
