@@ -288,3 +288,16 @@ export const db = {
     if (error) throw error
   },
 }
+
+// ── USERS ────────────────────────────────────────────────────
+
+export function useUsers() {
+  return useFetch(async () => {
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, full_name, email, role')
+      .order('full_name')
+    if (error) throw error
+    return data
+  })
+}
