@@ -65,8 +65,8 @@ export default function EventForm({ event = null, onClose, onSaved }) {
   const [errors,       setErrors]       = useState({})
   const [loading,      setLoading]      = useState(false)
   const [apiError,     setApiError]     = useState(null)
-  const [brandSuggestions, setBrands]   = useState([])
-  const [showSuggestions, setShowSugg]  = useState(false)
+  const [brandSugg, setBrandSugg]   = useState([])
+  const [showSugg, setShowSugg]  = useState(false)
   const brandRef = useRef()
 
   // Search brands as user types
@@ -199,9 +199,9 @@ export default function EventForm({ event = null, onClose, onSaved }) {
             {fields.brand_id && (
               <p className="text-xs text-emerald-400 mt-1">✓ Linked to existing brand</p>
             )}
-            {showSugg && brandSuggestions.length > 0 && (
+            {showSugg && brandSugg.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl z-10 overflow-hidden">
-                {brandSuggestions.map(b => (
+                {brandSugg.map(b => (
                   <button
                     key={b.id}
                     type="button"
