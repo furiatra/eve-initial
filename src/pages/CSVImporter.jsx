@@ -41,7 +41,7 @@ function parseCSV(text) {
   // Detect delimiter
   const delim = lines[0].includes('\t') ? '\t' : ','
 
-  const headers = lines[0].split(delim).map(h => h.trim().replace(/^"|"$/g, '').toLowerCase())
+  const headers = lines[0].split(delim).map(h => h.trim().replace(/^"|"$/g, ''))
 
   const rows = []
   for (let i = 1; i < lines.length; i++) {
@@ -55,7 +55,7 @@ function parseCSV(text) {
 
 function findCol(headers, candidates) {
   for (const c of candidates) {
-    const found = headers.find(h => h.includes(c.toLowerCase()))
+    const found = headers.find(h => h.toLowerCase().includes(c.toLowerCase()))
     if (found) return found
   }
   return null
@@ -84,7 +84,7 @@ export default function CSVImporter({ onDone }) {
       const mapping = {
         zoho:      findCol(headers, ['zoho']),
         unit:      findCol(headers, ['unit', 'name']),
-        company:   findCol(headers, ['company']),
+        company:   findCol(headers, ['company', 'Company']),
         companyId: findCol(headers, ['companyid', 'company_id']),
         type:      findCol(headers, ['type']),
         subtype:   findCol(headers, ['sub-type', 'subtype', 'sub_type']),
