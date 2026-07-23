@@ -102,6 +102,7 @@ import OperatorDetail from './pages/OperatorDetail'
 import DevicesList from './pages/DevicesList'
 import DeviceDetail from './pages/DeviceDetail'
 import UnitDetail from './pages/UnitDetail'
+import CSVImporter from './pages/CSVImporter'
 
 const NAV = [
   { id: 'dashboard', label: 'Dashboard', icon: '⬡' },
@@ -109,6 +110,7 @@ const NAV = [
   { id: 'suppliers', label: 'Suppliers', icon: '📦' },
   { id: 'operators', label: 'Operators', icon: '🏢' },
   { id: 'devices',   label: 'Devices',   icon: '💳' },
+{ id: 'import', label: 'Import', icon: '⬆️' },
 ]
 
 export default function App() {
@@ -147,6 +149,7 @@ export default function App() {
     if (activeTab === 'suppliers') return <SuppliersList onSelect={id => push('supplier', id)} />
     if (activeTab === 'operators') return <OperatorsList onSelect={id => push('operator', id)} />
     if (activeTab === 'devices')   return <DevicesList  onSelect={id => push('device', id)} />
+if (activeTab === 'import') return <CSVImporter onDone={() => switchTab('operators')} />
   }
 
   return (
