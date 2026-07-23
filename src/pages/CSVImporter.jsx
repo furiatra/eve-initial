@@ -39,7 +39,7 @@ function parseCSV(text) {
   if (lines.length < 2) throw new Error('CSV appears empty')
 
   // Detect delimiter
-  const delim = lines[0].includes('\t') ? '\t' : ','
+  const delim = ','
 
   const headers = lines[0].split(delim).map(h => h.trim().replace(/^"|"$/g, ''))
 
