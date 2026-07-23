@@ -2,31 +2,30 @@ import { useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { Card, LoadingSpinner } from '../App'
 
-// ── Type mapping from your CSV values to our enum values ──
 const TYPE_MAP = {
-  'attraction':                        'attraction',
-  'bar':                               'bar',
-  'caterer':                           'caterer',
-  'food':                              'caterer',
-  'food_stand':                        'caterer',
-  'game':                              'game',
-  'market stall':                      'market_stall',
-  'market_stall':                      'market_stall',
-  'misc':                              'misc',
-  'payhub':                            'payhub',
-  'photo/retail':                      'photo_retail',
-  'photo_retail':                      'photo_retail',
-  'photo booth':                       'photo_booth',
-  'photo_booth':                       'photo_booth',
-  'ride':                              'ride',
-  'rides':                             'ride',
-  'box office':                        'box_office',
-  'box_office':                        'box_office',
-  'kiosk':                             'kiosk',
-  'stage':                             'stage',
+  'attraction':   'attraction',
+  'bar':          'bar',
+  'caterer':      'caterer',
+  'food':         'caterer',
+  'food_stand':   'caterer',
+  'game':         'game',
+  'market stall': 'market_stall',
+  'market_stall': 'market_stall',
+  'misc':         'misc',
+  'payhub':       'payhub',
+  'photo/retail': 'photo_retail',
+  'photo_retail': 'photo_retail',
+  'photo booth':  'photo_booth',
+  'photo_booth':  'photo_booth',
+  'ride':         'ride',
+  'rides':        'ride',
+  'box office':   'box_office',
+  'box_office':   'box_office',
+  'kiosk':        'kiosk',
+  'stage':        'stage',
   'pwr department (production, ops, site)': 'internal',
-  'internal':                          'internal',
-  'other':                             'other',
+  'internal':     'internal',
+  'other':        'other',
 }
 
 function normaliseType(raw) {
@@ -35,17 +34,17 @@ function normaliseType(raw) {
 }
 
 function parseCSV(text) {
-  const lines = text.split('\n').filter(l => l.trim())
+  // Normalise line endings, remove blank lines
+  const lines = text.replace(/^\uFEFF/, '').replace(/\r/g, '').split('\n').filter(l => l.trim())
   if (lines.length < 2) throw new Error('CSV appears empty')
 
-  // Detect delimiter
-  const delim = lines[0].includes('\t') ? '\t' : ','
-
-  const headers = lines[0].split(delim).map(h => h.trim().replace(/^"|"$/g, '').toLowerCase())
+  // Always use comma — file must be saved as CSV not TSV
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, '').toLowerCase())
 
   const rows = []
   for (let i = 1; i < lines.length; i++) {
-    const vals = lines[i].split(delim).map(v => v.trim().replace(/^"|"$/g, ''))
+    const vals = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''))
+    if (vals.length < 2) continue
     const row = {}
     headers.forEach((h, idx) => { row[h] = vals[idx] || '' })
     rows.push(row)
@@ -55,50 +54,46 @@ function parseCSV(text) {
 
 function findCol(headers, candidates) {
   for (const c of candidates) {
-    const found = headers.find(h => h.includes(c.toLowerCase()))
-    if (found) return found
+    if (headers.includes(c.toLowerCase())) return c.toLowerCase()
   }
   return null
 }
 
 export default function CSVImporter({ onDone }) {
   const fileRef = useRef()
-  const [step, setStep]         = useState('upload')   // upload | preview | importing | done
-  const [parsed, setParsed]     = useState(null)        // { headers, rows, mapping }
+  const [step, setStep]         = useState('upload')
+  const [parsed, setParsed]     = useState(null)
   const [preview, setPreview]   = useState([])
   const [results, setResults]   = useState(null)
   const [error, setError]       = useState(null)
   const [progress, setProgress] = useState({ current: 0, total: 0 })
 
-  // ── Step 1: Parse the file ──────────────────────────────
   async function handleFile(e) {
     const file = e.target.files[0]
     if (!file) return
     setError(null)
 
     const text = await file.text()
+
     try {
       const { headers, rows } = parseCSV(text)
 
-      // Auto-detect column mapping
       const mapping = {
         zoho:      findCol(headers, ['zoho']),
         unit:      findCol(headers, ['unit', 'name']),
         company:   findCol(headers, ['company']),
-        companyId: findCol(headers, ['companyid', 'company_id']),
+        companyid: findCol(headers, ['companyid', 'company_id']),
         type:      findCol(headers, ['type']),
         subtype:   findCol(headers, ['sub-type', 'subtype', 'sub_type']),
         zone:      findCol(headers, ['zone']),
-        unitId:    findCol(headers, ['unitid', 'unit_id']),
+        unitid:    findCol(headers, ['unitid', 'unit_id']),
       }
 
-      // Build preview rows
       const prev = rows.slice(0, 5).map(r => ({
         zoho:    r[mapping.zoho]    || '—',
         unit:    r[mapping.unit]    || '—',
         company: r[mapping.company] || '—',
         type:    normaliseType(r[mapping.type]),
-        rawType: r[mapping.type]    || '—',
       }))
 
       setParsed({ headers, rows, mapping })
@@ -109,15 +104,12 @@ export default function CSVImporter({ onDone }) {
     }
   }
 
-  // ── Step 2: Import ──────────────────────────────────────
   async function runImport() {
     setStep('importing')
     setError(null)
 
     const { rows, mapping } = parsed
     const stats = { operators: 0, units: 0, skipped: 0, errors: [] }
-
-    // Cache operators we've already upserted this session
     const operatorCache = {}
 
     setProgress({ current: 0, total: rows.length })
@@ -131,14 +123,12 @@ export default function CSVImporter({ onDone }) {
       const zoho        = row[mapping.zoho]?.trim()
       const type        = normaliseType(row[mapping.type])
 
-      // Skip rows without a unit name or company
       if (!unitName || !companyName) {
         stats.skipped++
         continue
       }
 
       try {
-        // 1. Upsert operator (by name)
         let operatorId = operatorCache[companyName]
 
         if (!operatorId) {
@@ -146,7 +136,7 @@ export default function CSVImporter({ onDone }) {
             .from('operators')
             .select('id')
             .eq('name', companyName)
-            .single()
+            .maybeSingle()
 
           if (existing) {
             operatorId = existing.id
@@ -163,7 +153,6 @@ export default function CSVImporter({ onDone }) {
           operatorCache[companyName] = operatorId
         }
 
-        // 2. Upsert unit (by zoho code if present, else by name + operator)
         const unitPayload = {
           name:        unitName,
           operator_id: operatorId,
@@ -172,32 +161,26 @@ export default function CSVImporter({ onDone }) {
         }
 
         if (zoho) {
-          // Check if unit with this zoho code already exists (stored in description)
           const { data: existingUnit } = await supabase
             .from('units')
             .select('id')
             .eq('operator_id', operatorId)
             .ilike('description', `Zoho: ${zoho}%`)
-            .single()
+            .maybeSingle()
 
           if (existingUnit) {
-            // Update existing
-            await supabase
-              .from('units')
-              .update(unitPayload)
-              .eq('id', existingUnit.id)
+            await supabase.from('units').update(unitPayload).eq('id', existingUnit.id)
           } else {
             await supabase.from('units').insert(unitPayload)
             stats.units++
           }
         } else {
-          // No zoho — upsert by name + operator
           const { data: existingUnit } = await supabase
             .from('units')
             .select('id')
             .eq('name', unitName)
             .eq('operator_id', operatorId)
-            .single()
+            .maybeSingle()
 
           if (!existingUnit) {
             await supabase.from('units').insert(unitPayload)
@@ -214,7 +197,6 @@ export default function CSVImporter({ onDone }) {
     setStep('done')
   }
 
-  // ── Reset ───────────────────────────────────────────────
   function reset() {
     setStep('upload')
     setParsed(null)
@@ -225,7 +207,6 @@ export default function CSVImporter({ onDone }) {
     if (fileRef.current) fileRef.current.value = ''
   }
 
-  // ── Render ──────────────────────────────────────────────
   return (
     <div>
       <div className="flex items-start justify-between mb-4">
@@ -248,7 +229,6 @@ export default function CSVImporter({ onDone }) {
         </div>
       )}
 
-      {/* ── UPLOAD ── */}
       {step === 'upload' && (
         <Card>
           <div className="text-xs text-zinc-500 uppercase tracking-widest mb-4">Select CSV file</div>
@@ -256,20 +236,18 @@ export default function CSVImporter({ onDone }) {
             Your CSV should have columns for: <span className="text-zinc-300">Unit, Company, Zoho, Type</span>.
             Column names are detected automatically — extra or blank columns are ignored.
           </p>
-
           <label className="block w-full border-2 border-dashed border-zinc-700 rounded-xl p-8 text-center cursor-pointer hover:border-amber-500/50 transition-colors">
             <div className="text-3xl mb-2">📂</div>
             <div className="text-sm text-zinc-400">Click to choose a CSV file</div>
-            <div className="text-xs text-zinc-600 mt-1">or drag and drop</div>
+            <div className="text-xs text-zinc-600 mt-1">Must be saved as .csv (not .xlsx or .tsv)</div>
             <input
               ref={fileRef}
               type="file"
-              accept=".csv,.tsv,.txt"
+              accept=".csv,.txt"
               onChange={handleFile}
               className="hidden"
             />
           </label>
-
           <div className="mt-4 p-3 bg-zinc-800 rounded-lg">
             <div className="text-xs text-zinc-500 mb-2 font-semibold">Type mapping</div>
             <div className="grid grid-cols-2 gap-1 text-xs">
@@ -296,20 +274,17 @@ export default function CSVImporter({ onDone }) {
         </Card>
       )}
 
-      {/* ── PREVIEW ── */}
       {step === 'preview' && parsed && (
         <div className="space-y-4">
           <Card>
             <div className="text-xs text-zinc-500 uppercase tracking-widest mb-3">
               File loaded — {parsed.rows.length} rows detected
             </div>
-
             <div className="text-xs text-zinc-500 mb-3">
               Columns found: {parsed.headers.map(h => (
                 <span key={h} className="inline-block bg-zinc-800 rounded px-1.5 py-0.5 mr-1 mb-1 text-zinc-300">{h}</span>
               ))}
             </div>
-
             <div className="text-xs text-zinc-500 mb-1 font-semibold uppercase tracking-widest">Preview (first 5 rows)</div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
@@ -347,23 +322,16 @@ export default function CSVImporter({ onDone }) {
           </Card>
 
           <div className="flex gap-3">
-            <button
-              onClick={runImport}
-              className="flex-1 bg-amber-500 hover:bg-amber-400 text-zinc-900 font-bold rounded-lg py-3 text-sm transition-colors"
-            >
+            <button onClick={runImport} className="flex-1 bg-amber-500 hover:bg-amber-400 text-zinc-900 font-bold rounded-lg py-3 text-sm transition-colors">
               Import {parsed.rows.length} rows
             </button>
-            <button
-              onClick={reset}
-              className="px-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold rounded-lg py-3 text-sm transition-colors"
-            >
+            <button onClick={reset} className="px-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold rounded-lg py-3 text-sm transition-colors">
               Cancel
             </button>
           </div>
         </div>
       )}
 
-      {/* ── IMPORTING ── */}
       {step === 'importing' && (
         <Card className="text-center py-12">
           <LoadingSpinner />
@@ -380,7 +348,6 @@ export default function CSVImporter({ onDone }) {
         </Card>
       )}
 
-      {/* ── DONE ── */}
       {step === 'done' && results && (
         <div className="space-y-4">
           <Card className="border-emerald-500/20 bg-emerald-500/5">
@@ -399,7 +366,6 @@ export default function CSVImporter({ onDone }) {
                 </div>
               ))}
             </div>
-
             {results.errors.length > 0 && (
               <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
                 <div className="text-xs text-red-400 font-semibold mb-1">{results.errors.length} errors</div>
@@ -411,18 +377,11 @@ export default function CSVImporter({ onDone }) {
               </div>
             )}
           </Card>
-
           <div className="flex gap-3">
-            <button
-              onClick={onDone}
-              className="flex-1 bg-amber-500 hover:bg-amber-400 text-zinc-900 font-bold rounded-lg py-3 text-sm transition-colors"
-            >
+            <button onClick={onDone} className="flex-1 bg-amber-500 hover:bg-amber-400 text-zinc-900 font-bold rounded-lg py-3 text-sm transition-colors">
               View Operators & Units
             </button>
-            <button
-              onClick={reset}
-              className="px-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold rounded-lg py-3 text-sm transition-colors"
-            >
+            <button onClick={reset} className="px-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold rounded-lg py-3 text-sm transition-colors">
               Import another
             </button>
           </div>
